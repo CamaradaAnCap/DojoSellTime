@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Eric Reis, quant-B"
 #property link      "quantb.com"
-#property version   "1.5"
+#property version   "1.51"
 #property icon "quantBotIcon.ico"
 #property description "O robô do Setup maluco e simples"
 #property description "Para a comunidade de desenvolvimento mql5, Dojo de estudo contínuo"
@@ -87,7 +87,7 @@ input int media_lenta_MACD = 89; // Média Lenta do MACD
 input int media_rapida_MACD = 21; // Média Rápida do MACD
 input int media_sinal_MACD = 42; // Linha de Sinal do MACD
 input group "Estrátegia de Entrada Waiting Trade ADX Signal"
-input bool Ligar_Waiting_ADX = false; // Ligar estratégia de espera de sinal ADX (Cuidado! Backtest não confiável para essa função)
+input bool Ligar_Waiting_ADX = false; // Ligar estratégia de espera de sinal ADX (Cuidado! Backtest não confiável)
 input int Periodo_ADX = 14; // Periodo do ADX Wilder
 input int Corte_ADX = 20; // Nível do ADX para Considerar Força
 
@@ -204,6 +204,7 @@ void OnTick()
     
     //----------------------------//-----------------------//-------------------------------//---------------------------
         
+    if(Ligar_Position_MACD && !Ligar_MACD){
     if(Forma == Ligar_Signal_e_Barra){
     if(Buffer_macd_barra[0] < 0 && Buffer_macd_signal[0] - Buffer_macd_signal[1] > 0) allow_buy_MACD = true; else allow_buy_MACD = false;
     
@@ -211,33 +212,33 @@ void OnTick()
     }
     
     if(Forma == Ligar_Signal){
-    if(Buffer_macd_signal[0] - Buffer_macd_signal[1] > 0) allow_buy_MACD = true; else allow_buy_MACD = false;
+    if(Buffer_macd_signal[0] - Buffer_macd_signal[1] > 0) {allow_buy_MACD = true; allow_sell_MACD = false;} else {allow_buy_MACD = false;}
     
-    if(Buffer_macd_signal[0] - Buffer_macd_signal[1] < 0) allow_sell_MACD = true; else allow_sell_MACD = false;
+    if(Buffer_macd_signal[0] - Buffer_macd_signal[1] < 0) {allow_sell_MACD = true; allow_buy_MACD = false;} else {allow_sell_MACD = false;}
     }
     
     if(Forma == Ligar_Barra){
-    if(Buffer_macd_barra[0] < 0) allow_buy_MACD = true; else allow_buy_MACD = false;
+    if(Buffer_macd_barra[0] < 0) {allow_buy_MACD = true; allow_sell_MACD = false;} else {allow_buy_MACD = false;}
     
-    if(Buffer_macd_barra[0] > 0) allow_sell_MACD = true; else allow_sell_MACD = false;
+    if(Buffer_macd_barra[0] > 0) {allow_sell_MACD = true; allow_buy_MACD = false;} else {allow_sell_MACD = false;}
     }
+      }
     
     //---------------------------//----------------------------//--------------------------------//--------------------------
     
-    if(!Ligar_MACD && Ligar_Position_MACD){
-    if(allow_buy_MACD || allow_sell_MACD) allow_trade_sizing = true; else allow_trade_sizing = false; 
-    }
-    
     if(Ligar_MACD && Ligar_Position_MACD){
-    allow_trade_sizing = true;
+    allow_buy_MACD = true;
+    allow_sell_MACD = true;
     }
     
     if(Ligar_MACD && !Ligar_Position_MACD){
-    allow_trade_sizing = true;
+    allow_buy_MACD = true;
+    allow_sell_MACD = true;
     }
     
     if(!Ligar_MACD && !Ligar_Position_MACD){
-    allow_trade_sizing = false;
+    allow_buy_MACD = false;
+    allow_sell_MACD = false;
     }
     
     //--------------------------------------//----------------------------//--------------------//-----------------------------//-----------
@@ -257,52 +258,52 @@ void OnTick()
     be_ativo = false;
     
     if(HoraPrimeiraEntrada() && op_exec_01 < 1){
-    if(!allow_trade_sizing){
-    if(Modo01 == Venda && adx_allow_sell){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 1º Entrada"); op_exec_01 = op_exec_01 + 1;}
-    if(Modo01 == Compra && adx_allow_buy){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 1º Entrada"); op_exec_01 = op_exec_01 + 1;}
-    } else {
+    
+    if(Modo01 == Venda && adx_allow_sell && !allow_sell_MACD){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 1º Entrada"); op_exec_01 = op_exec_01 + 1;}
+    if(Modo01 == Compra && adx_allow_buy && !allow_buy_MACD){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 1º Entrada"); op_exec_01 = op_exec_01 + 1;}
+    
     if(Modo01 == Venda && allow_sell_MACD  && adx_allow_sell){trade.Sell(Volume_MACD, Symbol(), 0, 0, 0, "Venda Sinal MACD 1º Entrada"); op_exec_01 = op_exec_01 + 1;}
     if(Modo01 == Compra && allow_buy_MACD && adx_allow_buy){trade.Buy(Volume_MACD, Symbol(), 0, 0, 0, "Compra Sinal MACD 1º Entrada"); op_exec_01 = op_exec_01 + 1;}
-    }
+    
     //op_exec_01 = op_exec_01 + 1;
     addTakeStop(StopLoss, TakeProfit);
     
     }
     
     if(HoraSegundaEntrada() && op_exec_02 < 1 && ligarSegundaEntrada){
-    if(!allow_trade_sizing){
-    if(Modo02 == Venda && adx_allow_sell){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 2º Entrada"); op_exec_02 = op_exec_02 + 1;}
-    if(Modo02 == Compra && adx_allow_buy){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 2º Entrada"); op_exec_02 = op_exec_02 + 1;}
-    } else {
+    
+    if(Modo02 == Venda && adx_allow_sell && !allow_sell_MACD){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 2º Entrada"); op_exec_02 = op_exec_02 + 1;}
+    if(Modo02 == Compra && adx_allow_buy && !allow_buy_MACD){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 2º Entrada"); op_exec_02 = op_exec_02 + 1;}
+    
     if(Modo02 == Venda && allow_sell_MACD && adx_allow_sell){trade.Sell(Volume_MACD, Symbol(), 0, 0, 0, "Venda Sinal MACD 2º Entrada"); op_exec_02 = op_exec_02 + 1;}
     if(Modo02 == Compra && allow_buy_MACD && adx_allow_buy){trade.Buy(Volume_MACD, Symbol(), 0, 0, 0, "Compra Sinal MACD 2º Entrada"); op_exec_02 = op_exec_02 + 1;}
-    }
+    
     //op_exec_02 = op_exec_02 + 1;
     addTakeStop(StopLoss, TakeProfit);
     
     }
     
     if(HoraTerceiraEntrada() && op_exec_03 < 1 && ligarTerceiraEntrada){
-    if(!allow_trade_sizing){
-    if(Modo03 == Venda && adx_allow_sell){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 3º Entrada"); op_exec_03 = op_exec_03 + 1;}
-    if(Modo03 == Compra && adx_allow_buy){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 3º Entrada"); op_exec_03 = op_exec_03 + 1;}
-    } else { 
+    
+    if(Modo03 == Venda && adx_allow_sell && !allow_sell_MACD){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 3º Entrada"); op_exec_03 = op_exec_03 + 1;}
+    if(Modo03 == Compra && adx_allow_buy && !allow_buy_MACD){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 3º Entrada"); op_exec_03 = op_exec_03 + 1;}
+    
     if(Modo03 == Venda && allow_sell_MACD && adx_allow_sell){trade.Sell(Volume_MACD, Symbol(), 0, 0, 0, "Venda Sinal MACD 3º Entrada"); op_exec_03 = op_exec_03 + 1;}
     if(Modo03 == Compra && allow_buy_MACD && adx_allow_buy){trade.Buy(Volume_MACD, Symbol(), 0, 0, 0, "Compra Sinal MACD 3º Entrada"); op_exec_03 = op_exec_03 + 1;}
-    }
+    
     //op_exec_03 = op_exec_03 + 1;
     addTakeStop(StopLoss, TakeProfit);
     
     }
     
     if(HoraQuartaEntrada() && op_exec_04 < 1 && ligarQuartaEntrada){
-    if(!allow_trade_sizing){
-    if(Modo04 == Venda && adx_allow_sell){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 4º Entrada"); op_exec_04 = op_exec_04 + 1;}
-    if(Modo04 == Compra && adx_allow_buy){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 4º Entrada"); op_exec_04 = op_exec_04 + 1;}
-    } else {
+    
+    if(Modo04 == Venda && adx_allow_sell && !allow_sell_MACD){trade.Sell(Volume, Symbol(), 0, 0, 0, "Venda 4º Entrada"); op_exec_04 = op_exec_04 + 1;}
+    if(Modo04 == Compra && adx_allow_buy && !allow_buy_MACD){trade.Buy(Volume, Symbol(), 0, 0, 0, "Compra 4º Entrada"); op_exec_04 = op_exec_04 + 1;}
+    
     if(Modo04 == Venda && allow_sell_MACD && adx_allow_sell){trade.Sell(Volume_MACD, Symbol(), 0, 0, 0, "Venda Sinal MACD 4º Entrada"); op_exec_04 = op_exec_04 + 1;}
     if(Modo04 == Compra && allow_buy_MACD && adx_allow_buy){trade.Buy(Volume_MACD, Symbol(), 0, 0, 0, "Compra Sinal MACD 4º Entrada"); op_exec_04 = op_exec_04 + 1;}
-    }
+    
     //op_exec_04 = op_exec_04 + 1;
     addTakeStop(StopLoss, TakeProfit);
     
