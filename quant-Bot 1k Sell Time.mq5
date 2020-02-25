@@ -87,7 +87,7 @@ input int media_lenta_MACD = 89; // Média Lenta do MACD
 input int media_rapida_MACD = 21; // Média Rápida do MACD
 input int media_sinal_MACD = 42; // Linha de Sinal do MACD
 input group "Estrátegia de Entrada Waiting Trade ADX Signal"
-input bool Ligar_Waiting_ADX = false; // Ligar estratégia de espera de sinal ADX (Cuidado! Backtest não confiável)
+input bool Ligar_Waiting_ADX = false; // Ligar sinal ADX (Cuidado! Backtest não confiável)
 input int Periodo_ADX = 14; // Periodo do ADX Wilder
 input int Corte_ADX = 20; // Nível do ADX para Considerar Força
 
